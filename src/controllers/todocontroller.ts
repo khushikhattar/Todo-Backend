@@ -39,7 +39,7 @@ const createTodo = async (req: Request, res: Response) => {
 
 const deleteTodo = async (req: Request, res: Response) => {
   try {
-    const deletedTodo = await Todo.findByIdAndDelete(req.query._id);
+    const deletedTodo = await Todo.findByIdAndDelete(req.params.id);
     if (!deletedTodo) {
       return res.status(404).json({ message: "Todo not found" });
     }
@@ -56,7 +56,7 @@ const deleteTodo = async (req: Request, res: Response) => {
 
 const markTodoAsCompleted = async (req: Request, res: Response) => {
   try {
-    const todo = await Todo.findByIdAndUpdate(req.query._id, {
+    const todo = await Todo.findByIdAndUpdate(req.params.id, {
       $set: { markedAsCompleted: true },
     });
     if (!todo) {

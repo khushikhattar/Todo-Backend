@@ -107,7 +107,6 @@ const loginUser = async (req: Request, res: Response) => {
 };
 
 // Logout user
-// Logout user
 const logoutUser = async (req: Request, res: Response) => {
   if (!req.user || !req.user._id) {
     return res.status(400).json({ message: "User not found" });
@@ -162,4 +161,84 @@ const refreshAccessToken = async (req: Request, res: Response) => {
       error: (error as Error).message,
     });
   }
+};
+
+const updateUser = async (req: Request, res: Response) => {
+  const parseResult = UpdateUserSchema.safeParse(req.body);
+  if (!parseResult.success) {
+    return res
+      .status(400)
+      .json({ message: "Validation errors", errors: parseResult.error.errors });
+  }
+
+  const { newusername, newemail } = parseResult.data;
+  if (!(newusername || newemail)) {
+    return res.status(400).json({ message: "Username and email are required" });
+  }
+  if (!req.user || !req.user._id) {
+    return res.status(400).json({ message: "User not found" });
+  }
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    { $set: { username: newusername, email: newemail } },
+    { new: true }
+  ).select("-password");
+
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
+
+  return res
+    .status(200)
+    .json({ message: "User Details Updated Successfully", user });
+};
+
+const updatePassword = async (req: Request, res: Response) => {
+  const parseResult = UpdatePasswordSchema.safeParse(req.body);
+  if (!parseResult.success) {
+    return res
+      .status(400)
+      .json({ message: "Validation errors", errors: parseResult.error.errors });
+  }
+  if (!req.user || !req.user._id) {
+    return res.status(400).json({ message: "User not found" });
+  }
+  const { oldpassword, newpassword } = parseResult.data;
+  const user = await User.findById(req.user._id);
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
+
+  const isPasswordValid = await user.isPasswordCorrect(oldpassword);
+  if (!isPasswordValid) {
+    return res.status(400).json({ message: "Invalid current password" });
+  }
+
+  user.password = newpassword;
+  await user.save({ validateBeforeSave: false });
+  return res.status(200).json({ message: "Password changed successfully" });
+};
+
+const deleteUser = async (req: Request, res: Response) => {
+  if (!req.user || !req.user._id) {
+    return res.status(400).json({ message: "User not found" });
+  }
+  const deleteduser = await User.findByIdAndDelete(req.user._id);
+  if (!deleteduser) {
+    return res
+      .status(404)
+      .json({ message: "Error occurred in deleting the user" });
+  }
+
+  return res.status(200).json({ message: "User deleted successfully" });
+};
+
+export {
+  registerUser,
+  loginUser,
+  logoutUser,
+  refreshAccessToken,
+  updateUser,
+  updatePassword,
+  deleteUser,
 };

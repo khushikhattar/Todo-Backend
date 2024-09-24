@@ -1,9 +1,10 @@
-import mongoose, { Schema, Document, Model } from "mongoose";
+import mongoose, { Schema, Document, Model, Types } from "mongoose";
 
 export interface Todo extends Document {
   title: string;
   description: string;
   markedAsCompleted: boolean;
+  userId: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -20,6 +21,10 @@ const TodoSchema: Schema<Todo> = new Schema(
     markedAsCompleted: {
       type: Boolean,
       default: false,
+    },
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
     },
   },
   { timestamps: true }

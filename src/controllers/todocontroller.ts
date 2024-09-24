@@ -70,3 +70,17 @@ const markTodoAsCompleted = async (req: Request, res: Response) => {
     });
   }
 };
+
+const getalltodos = async (req: Request, res: Response) => {
+  if (!req.user || !req.user._id) {
+    return res.status(400).json({ message: "User not found" });
+  }
+  const usertodos = Todo.find({
+    userId: req.user._id,
+  });
+  if (!usertodos) {
+    return res.status(404).json({ message: "Todos not found" });
+  }
+  return res.status(200).json({ usertodos });
+};
+export { createTodo, deleteTodo, markTodoAsCompleted, getalltodos };

@@ -28,7 +28,7 @@ export const verifyJWT = async (
       return res.status(400).json({ message: "Invalid Access Token" });
     }
 
-    (req as any).user = user; // Type assertion since `user` is a custom property
+    (req as any).user = user;
     next();
   } catch (error) {
     return res

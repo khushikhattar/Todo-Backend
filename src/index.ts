@@ -1,35 +1,31 @@
 import dotenv from "dotenv";
-import cookieParser from "cookie-parser";
-import express, { Request, Response, NextFunction } from "express";
-
-import userrouter from "./routes/userroutes";
-import todorouter from "./routes/todoroutes";
+import mongoose from "mongoose";
+import { app } from "./app";
 
 dotenv.config();
 
-const app = express();
+const startServer = async () => {
+  const mongoUrl = process.env.DATABASE_URL;
 
-// Middleware
-app.use(cookieParser());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+  if (!mongoUrl) {
+    console.error("MongoDB URL is not defined in the environment variables.");
+    process.exit(1);
+  }
 
-// Routes
-app.use("/api/v1/users", userrouter);
-app.use("/api/v1/todos", todorouter);
+  try {
+    await mongoose.connect(mongoUrl);
+    console.log("Connected to MongoDB");
+  } catch (err) {
+    console.error("Failed to connect to MongoDB", err);
+    process.exit(1);
+  }
+};
 
-// Error handling middleware (optional, but useful for catching errors)
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-	console.error(err.stack);
-	res.status(500).send({
-		message: "An error occurred",
-		error: process.env.NODE_ENV === "development" ? err.message : {},
-	});
-});
+startServer();
 
 // Start the server
 const PORT = process.env.PORT || 3100;
 
 app.listen(PORT, () => {
-	console.log(`Server listening on port ${PORT}`);
+  console.log(`Server listening on port ${PORT}`);
 });

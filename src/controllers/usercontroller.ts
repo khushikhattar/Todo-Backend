@@ -2,6 +2,7 @@ import { User } from "../models/usermodel";
 import { z } from "zod";
 import jwt from "jsonwebtoken";
 import { Request, Response } from "express";
+import bcrypt from "bcryptjs";
 
 const UserSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -48,21 +49,17 @@ const registerUser = async (req: Request, res: Response) => {
       .status(400)
       .json({ message: "Validation errors", errors: parseResult.error.errors });
   }
-
   const { username, email, password } = parseResult.data;
   const existedUser = await User.findOne({ $or: [{ username }, { email }] });
-
   if (existedUser) {
     return res
       .status(409)
       .json({ message: "User with email or username already exists" });
   }
-
   const createdUser = await User.create({ username, password, email });
   if (!createdUser) {
     return res.status(500).json({ message: "Error creating the user" });
   }
-
   return res.status(201).json({ message: "User registered successfully" });
 };
 
@@ -214,8 +211,10 @@ const updatePassword = async (req: Request, res: Response) => {
     return res.status(400).json({ message: "Invalid current password" });
   }
 
-  user.password = newpassword;
+  const hashedPassword = await bcrypt.hash(newpassword, 10);
+  user.password = hashedPassword;
   await user.save({ validateBeforeSave: false });
+
   return res.status(200).json({ message: "Password changed successfully" });
 };
 

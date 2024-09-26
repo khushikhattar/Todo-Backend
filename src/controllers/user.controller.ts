@@ -1,8 +1,9 @@
-import { User } from "../models/usermodel";
 import { z } from "zod";
-import jwt from "jsonwebtoken";
-import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
+import jwt, { JwtPayload } from "jsonwebtoken";
+import { Request, Response } from "express";
+
+import { User } from "../models/user.model";
 
 interface UserPayload {
   _id: string;
@@ -11,6 +12,12 @@ interface UserPayload {
 const UserSchema = z.object({
   username: z.string().min(1, "Username is required"),
   email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters long"),
+});
+
+const LoginSchema = z.object({
+  username: z.string().optional(),
+  email: z.string().email("Invalid email address").optional(),
   password: z.string().min(6, "Password must be at least 6 characters long"),
 });
 
@@ -69,7 +76,7 @@ const registerUser = async (req: Request, res: Response) => {
 
 // Login user
 const loginUser = async (req: Request, res: Response) => {
-  const parseResult = UserSchema.safeParse(req.body);
+  const parseResult = LoginSchema.safeParse(req.body);
   if (!parseResult.success) {
     return res
       .status(400)
@@ -104,7 +111,7 @@ const loginUser = async (req: Request, res: Response) => {
     .status(200)
     .cookie("accessToken", accessToken, options)
     .cookie("refreshToken", refreshToken, options)
-    .json({ message: "User Logged In Successfully", user: loggedInUser });
+    .json({ message: "User Logged In Successfully", user: loggedInUser, token: accessToken });
 };
 
 // Logout user
@@ -137,7 +144,7 @@ const refreshAccessToken = async (req: Request, res: Response) => {
   try {
     const decodedToken = jwt.verify(
       incomingreftoken,
-      process.env.REFRESH_TOKEN_SECRET!
+      process.env.REFRESH_TOKEN_SECRET as string
     ) as UserPayload;
     const user = await User.findById(decodedToken._id);
     if (!user || incomingreftoken !== user.refreshtoken) {

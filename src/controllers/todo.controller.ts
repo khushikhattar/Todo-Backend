@@ -1,28 +1,30 @@
-import { User } from "../models/usermodel";
-import { Todo } from "../models/todomodel";
 import { z } from "zod";
 import { Request, Response } from "express";
+
+import { User } from "../models/user.model";
+import { Todo } from "../models/todo.model";
 
 const TodoSchema = z.object({
   title: z.string().min(4, "Title is required"),
   description: z.string().min(5, "Description is required"),
-  markedAsCompleted: z.boolean().default(false),
+  completed: z.boolean().default(false),
 });
 
 const createTodo = async (req: Request, res: Response) => {
-  const parsedata = TodoSchema.safeParse(req.body);
-  if (!parsedata.success) {
+  const validatedFields = TodoSchema.safeParse(req.body);
+  if (!validatedFields.success) {
     return res
       .status(400)
-      .json({ message: "Validation errors", errors: parsedata.error.errors });
+      .json({ message: "Validation errors", errors: validatedFields.error.errors });
   }
 
-  const { title, description, markedAsCompleted } = parsedata.data;
+  const { title, description, completed } = validatedFields.data;
   try {
     const newTodo = await Todo.create({
       title,
       description,
-      markedAsCompleted,
+      completed,
+      userId: String(req.user?._id)
     });
 
     await User.findByIdAndUpdate((req as any).user._id, {
@@ -54,15 +56,18 @@ const deleteTodo = async (req: Request, res: Response) => {
   }
 };
 
-const markTodoAsCompleted = async (req: Request, res: Response) => {
+const updateTodoStatus = async (req: Request, res: Response) => {
+  const { completed } = req.body
+
   try {
-    const todo = await Todo.findByIdAndUpdate(req.params.id, {
-      $set: { markedAsCompleted: true },
-    });
-    if (!todo) {
+    const updatedTodo = await Todo.findByIdAndUpdate(req.params.id, {
+      completed
+    },
+    );
+    if (!updatedTodo) {
       return res.status(404).json({ message: "Todo not found" });
     }
-    res.status(200).json({ message: "Todo marked as completed", todo });
+    res.status(200).json({ message: "Todo marked as completed", updatedTodo });
   } catch (error) {
     res.status(500).json({
       message: "Error updating todo",
@@ -71,16 +76,18 @@ const markTodoAsCompleted = async (req: Request, res: Response) => {
   }
 };
 
-const getalltodos = async (req: Request, res: Response) => {
+const fetchTodos = async (req: Request, res: Response) => {
   if (!req.user || !req.user._id) {
     return res.status(400).json({ message: "User not found" });
   }
-  const usertodos = Todo.find({
-    userId: req.user._id,
+
+  const userTodos = await Todo.find({
+    userId: String(req.user?._id)
   });
-  if (!usertodos) {
+
+  if (!userTodos) {
     return res.status(404).json({ message: "Todos not found" });
   }
-  return res.status(200).json({ usertodos });
+  return res.status(200).json(userTodos);
 };
-export { createTodo, deleteTodo, markTodoAsCompleted, getalltodos };
+export { createTodo, deleteTodo, updateTodoStatus, fetchTodos };

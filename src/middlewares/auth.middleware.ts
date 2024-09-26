@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import { User } from "../models/usermodel";
+import { User } from "../models/user.model";
 import { Request, Response, NextFunction } from "express"; // Import types
 interface UserPayload {
   _id: string;
@@ -24,6 +24,7 @@ export const verifyJWT = async (
     const token =
       req.cookies?.accessToken ||
       req.header("Authorization")?.replace("Bearer ", "");
+
     if (!token) {
       return res.status(400).json({ message: "Unauthorized Request" });
     }

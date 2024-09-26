@@ -7,7 +7,7 @@ export interface User extends Document {
   username: string;
   email: string;
   password: string;
-  todolist: Types.ObjectId;
+  todolist: Types.ObjectId[];
   refreshtoken: string;
   createdAt?: Date;
   updatedAt?: Date;
@@ -29,10 +29,12 @@ const userSchema: Schema<User> = new Schema(
       type: String,
       required: true,
     },
-    todolist: {
-      type: Schema.Types.ObjectId,
-      ref: "Todo",
-    },
+    todolist: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Todo",
+      },
+    ],
     refreshtoken: {
       type: String,
     },

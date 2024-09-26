@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import { User } from "../models/usermodel";
-import { Request, Response, NextFunction } from "express"; // Import types
+import { Request, Response, NextFunction } from "express";
 interface UserPayload {
   _id: string;
   username: string;
@@ -33,7 +33,7 @@ export const verifyJWT = async (
       process.env.ACCESS_TOKEN_SECRET!
     ) as UserPayload;
 
-    const user = await User.findById((decodedToken as any)?._id).select(
+    const user = await User.findById(decodedToken._id).select(
       "-password -refreshToken"
     );
 
@@ -41,7 +41,11 @@ export const verifyJWT = async (
       return res.status(400).json({ message: "Invalid Access Token" });
     }
 
-    req.user = user;
+    req.user = {
+      _id: user._id,
+      email: user.email,
+      username: user.username,
+    };
     next();
   } catch (error) {
     return res

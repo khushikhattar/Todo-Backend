@@ -76,8 +76,8 @@ const loginUser = async (req: Request, res: Response) => {
       .json({ message: "Validation errors", errors: parseResult.error.errors });
   }
 
-  const { username, password, email } = parseResult.data;
-  const user = await User.findOne({ $or: [{ username }, { email }] });
+  const { username, password } = parseResult.data;
+  const user = await User.findOne({ $or: [{ username }, { password }] });
 
   if (!user) {
     return res.status(404).json({ message: "User does not exist" });

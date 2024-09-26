@@ -3,7 +3,7 @@ import mongoose, { Schema, Document, Model, Types } from "mongoose";
 export interface Todo extends Document {
   title: string;
   description: string;
-  markedAsCompleted: boolean;
+  completed: boolean;
   userId: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -18,7 +18,7 @@ const TodoSchema: Schema<Todo> = new Schema(
     description: {
       type: String,
     },
-    markedAsCompleted: {
+    completed: {
       type: Boolean,
       default: false,
     },

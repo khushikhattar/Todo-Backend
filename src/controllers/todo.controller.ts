@@ -1,16 +1,12 @@
-import { User } from "../models/usermodel";
-import { Todo } from "../models/todomodel";
+import { User } from "../models/user.model";
+import { Todo } from "../models/todo.model";
 import { z } from "zod";
 import { Request, Response } from "express";
-
-// Schema for Todo validation
 const TodoSchema = z.object({
   title: z.string().min(4, "Title is required"),
   description: z.string().min(5, "Description is required"),
   markedAsCompleted: z.boolean().default(false),
 });
-
-// Create a new Todo
 const createTodo = async (req: Request, res: Response) => {
   const parsedata = TodoSchema.safeParse(req.body);
   if (!parsedata.success) {

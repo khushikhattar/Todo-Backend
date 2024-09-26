@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 
 export interface User extends Document {
-  _id: Types.ObjectId;
+  _id: string;
   username: string;
   email: string;
   password: string;
@@ -11,8 +11,8 @@ export interface User extends Document {
   refreshtoken: string;
   createdAt?: Date;
   updatedAt?: Date;
-  genAccessToken: () => string;
-  genRefreshToken: () => string;
+  genaccesstoken: () => string;
+  genrefreshtoken: () => string;
   isPasswordCorrect: (password: string) => Promise<boolean>;
 }
 

@@ -4,6 +4,10 @@ import jwt from "jsonwebtoken";
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 
+interface UserPayload {
+  _id: string;
+}
+
 const UserSchema = z.object({
   username: z.string().min(1, "Username is required"),
   email: z.string().email("Invalid email address"),
@@ -31,8 +35,8 @@ const generateAccessAndRefreshTokens = async (userId: string) => {
     if (!user) {
       throw new Error("User not found");
     }
-    const accessToken = user.genAccessToken();
-    const refreshToken = user.genRefreshToken();
+    const accessToken = user.genaccesstoken();
+    const refreshToken = user.genrefreshtoken();
     user.refreshtoken = refreshToken;
     await user.save({ validateBeforeSave: false });
     return { accessToken, refreshToken };
@@ -133,9 +137,9 @@ const refreshAccessToken = async (req: Request, res: Response) => {
   try {
     const decodedToken = jwt.verify(
       incomingreftoken,
-      process.env.REFRESH_TOKEN_SECRET as string
-    );
-    const user = await User.findById((decodedToken as any)._id);
+      process.env.REFRESH_TOKEN_SECRET!
+    ) as UserPayload;
+    const user = await User.findById(decodedToken._id);
     if (!user || incomingreftoken !== user.refreshtoken) {
       return res
         .status(401)
@@ -167,7 +171,6 @@ const updateUser = async (req: Request, res: Response) => {
       .status(400)
       .json({ message: "Validation errors", errors: parseResult.error.errors });
   }
-
   const { newusername, newemail } = parseResult.data;
   if (!(newusername || newemail)) {
     return res.status(400).json({ message: "Username and email are required" });

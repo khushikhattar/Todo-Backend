@@ -23,8 +23,8 @@ const LoginSchema = z.object({
 
 // Schemas for updating user and password
 const UpdateUserSchema = z.object({
-  newusername: z.string().min(1, "New username is required").optional(),
-  newemail: z.string().email("Invalid email address").optional(),
+  username: z.string().min(1, "New username is required").optional(),
+  email: z.string().email("Invalid email address").optional(),
 });
 
 const UpdatePasswordSchema = z.object({
@@ -39,13 +39,17 @@ const UpdatePasswordSchema = z.object({
 const generateAccessAndRefreshTokens = async (userId: string) => {
   try {
     const user = await User.findById(userId);
+
     if (!user) {
       throw new Error("User not found");
     }
+
     const accessToken = user.genaccesstoken();
     const refreshToken = user.genrefreshtoken();
+
     user.refreshtoken = refreshToken;
     await user.save({ validateBeforeSave: false });
+
     return { accessToken, refreshToken };
   } catch (error) {
     throw new Error(`Error generating tokens: ${(error as Error).message}`);
@@ -55,28 +59,35 @@ const generateAccessAndRefreshTokens = async (userId: string) => {
 // Register user
 const registerUser = async (req: Request, res: Response) => {
   const parseResult = UserSchema.safeParse(req.body);
+
   if (!parseResult.success) {
     return res
       .status(400)
       .json({ message: "Validation errors", errors: parseResult.error.errors });
   }
+
   const { username, email, password } = parseResult.data;
   const existedUser = await User.findOne({ $or: [{ username }, { email }] });
+
   if (existedUser) {
     return res
       .status(409)
       .json({ message: "User with email or username already exists" });
   }
+
   const createdUser = await User.create({ username, password, email });
+
   if (!createdUser) {
     return res.status(500).json({ message: "Error creating the user" });
   }
+
   return res.status(201).json({ message: "User registered successfully" });
 };
 
 // Login user
 const loginUser = async (req: Request, res: Response) => {
   const parseResult = LoginSchema.safeParse(req.body);
+
   if (!parseResult.success) {
     return res
       .status(400)
@@ -98,6 +109,7 @@ const loginUser = async (req: Request, res: Response) => {
   const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
     user._id.toString()
   );
+
   const loggedInUser = await User.findById(user._id).select(
     "-password -refreshtoken"
   );
@@ -111,7 +123,11 @@ const loginUser = async (req: Request, res: Response) => {
     .status(200)
     .cookie("accessToken", accessToken, options)
     .cookie("refreshToken", refreshToken, options)
-    .json({ message: "User Logged In Successfully", user: loggedInUser, token: accessToken });
+    .json({
+      message: "User Logged In Successfully",
+      user: loggedInUser,
+      token: accessToken,
+    });
 };
 
 // Logout user
@@ -173,21 +189,26 @@ const refreshAccessToken = async (req: Request, res: Response) => {
 
 const updateUser = async (req: Request, res: Response) => {
   const parseResult = UpdateUserSchema.safeParse(req.body);
+
   if (!parseResult.success) {
     return res
       .status(400)
       .json({ message: "Validation errors", errors: parseResult.error.errors });
   }
-  const { newusername, newemail } = parseResult.data;
-  if (!(newusername || newemail)) {
+
+  const { username, email } = parseResult.data;
+
+  if (!(username || email)) {
     return res.status(400).json({ message: "Username and email are required" });
   }
+
   if (!req.user || !req.user._id) {
     return res.status(400).json({ message: "User not found" });
   }
+
   const user = await User.findByIdAndUpdate(
     req.user._id,
-    { $set: { username: newusername, email: newemail } },
+    { $set: { username, email } },
     { new: true }
   ).select("-password");
 
@@ -202,21 +223,26 @@ const updateUser = async (req: Request, res: Response) => {
 
 const updatePassword = async (req: Request, res: Response) => {
   const parseResult = UpdatePasswordSchema.safeParse(req.body);
+
   if (!parseResult.success) {
     return res
       .status(400)
       .json({ message: "Validation errors", errors: parseResult.error.errors });
   }
+
   if (!req.user || !req.user._id) {
     return res.status(400).json({ message: "User not found" });
   }
+
   const { oldpassword, newpassword } = parseResult.data;
   const user = await User.findById(req.user._id);
+
   if (!user) {
     return res.status(404).json({ message: "User not found" });
   }
 
   const isPasswordValid = await user.isPasswordCorrect(oldpassword);
+
   if (!isPasswordValid) {
     return res.status(400).json({ message: "Invalid current password" });
   }
@@ -232,7 +258,9 @@ const deleteUser = async (req: Request, res: Response) => {
   if (!req.user || !req.user._id) {
     return res.status(400).json({ message: "User not found" });
   }
+
   const deleteduser = await User.findByIdAndDelete(req.user._id);
+
   if (!deleteduser) {
     return res
       .status(404)

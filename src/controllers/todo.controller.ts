@@ -1,14 +1,18 @@
-import { User } from "../models/user.model";
-import { Todo } from "../models/todo.model";
 import { z } from "zod";
 import { Request, Response } from "express";
+
+import { User } from "../models/user.model";
+import { Todo } from "../models/todo.model";
+
 const TodoSchema = z.object({
   title: z.string().min(4, "Title is required"),
   description: z.string().min(5, "Description is required"),
   markedAsCompleted: z.boolean().default(false),
 });
+
 const createTodo = async (req: Request, res: Response) => {
   const parsedata = TodoSchema.safeParse(req.body);
+
   if (!parsedata.success) {
     return res
       .status(400)
@@ -41,9 +45,11 @@ const createTodo = async (req: Request, res: Response) => {
 const deleteTodo = async (req: Request, res: Response) => {
   try {
     const deletedTodo = await Todo.findByIdAndDelete(req.params.id);
+
     if (!deletedTodo) {
       return res.status(404).json({ message: "Todo not found" });
     }
+
     return res
       .status(200)
       .json({ message: "Todo deleted successfully", deletedTodo });
@@ -57,15 +63,18 @@ const deleteTodo = async (req: Request, res: Response) => {
 
 const updateTodoStatus = async (req: Request, res: Response) => {
   const { completed } = req.body;
+
   try {
     const todo = await Todo.findByIdAndUpdate(
       req.params.id,
       { completed },
       { new: true }
     );
+
     if (!todo) {
       return res.status(404).json({ message: "Todo not found" });
     }
+
     return res.status(200).json({
       message: `Todo ${completed ? "marked as completed" : "not completed"}`,
       todo,

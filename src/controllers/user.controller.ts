@@ -16,8 +16,7 @@ const UserSchema = z.object({
 });
 
 const LoginSchema = z.object({
-  username: z.string().optional(),
-  email: z.string().email("Invalid email address").optional(),
+  identifier: z.string(),
   password: z.string().min(6, "Password must be at least 6 characters long"),
 });
 
@@ -94,8 +93,10 @@ const loginUser = async (req: Request, res: Response) => {
       .json({ message: "Validation errors", errors: parseResult.error.errors });
   }
 
-  const { username, password } = parseResult.data;
-  const user = await User.findOne({ $or: [{ username }, { password }] });
+  const { identifier, password } = parseResult.data;
+  const user = await User.findOne({
+    $or: [{ username: identifier }, { email: identifier }],
+  });
 
   if (!user) {
     return res.status(404).json({ message: "User does not exist" });
@@ -109,6 +110,9 @@ const loginUser = async (req: Request, res: Response) => {
   const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
     user._id.toString()
   );
+
+  user.refreshtoken = refreshToken;
+  await user.save({ validateBeforeSave: false });
 
   const loggedInUser = await User.findById(user._id).select(
     "-password -refreshtoken"

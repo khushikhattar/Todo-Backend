@@ -4,12 +4,14 @@ import { Request, Response } from "express";
 import { User } from "../models/user.model";
 import { Todo } from "../models/todo.model";
 
+// Define the schema for validating todos
 const TodoSchema = z.object({
   title: z.string().min(4, "Title is required"),
   description: z.string().min(5, "Description is required"),
   markedAsCompleted: z.boolean().default(false),
 });
 
+// Create a new Todo
 const createTodo = async (req: Request, res: Response) => {
   const parsedata = TodoSchema.safeParse(req.body);
 
@@ -28,11 +30,16 @@ const createTodo = async (req: Request, res: Response) => {
       markedAsCompleted,
     });
 
-    await User.findByIdAndUpdate(req.user!._id, {
+    // Check if the user update was successful
+    const updatedUser = await User.findByIdAndUpdate(req.user!._id, {
       $push: { todolist: newTodo._id },
     });
 
-    res.status(200).json({ message: "Todo created successfully", newTodo });
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(201).json({ message: "Todo created successfully", newTodo });
   } catch (error) {
     res.status(500).json({
       message: "Error creating todo",
@@ -61,13 +68,14 @@ const deleteTodo = async (req: Request, res: Response) => {
   }
 };
 
+// Update the status of a Todo
 const updateTodoStatus = async (req: Request, res: Response) => {
-  const { completed } = req.body;
+  const { markedAsCompleted } = req.body;
 
   try {
     const todo = await Todo.findByIdAndUpdate(
       req.params.id,
-      { completed },
+      { markedAsCompleted },
       { new: true }
     );
 
@@ -76,7 +84,9 @@ const updateTodoStatus = async (req: Request, res: Response) => {
     }
 
     return res.status(200).json({
-      message: `Todo ${completed ? "marked as completed" : "not completed"}`,
+      message: `Todo ${
+        markedAsCompleted ? "marked as completed" : "not completed"
+      }`,
       todo,
     });
   } catch (error) {
@@ -87,20 +97,19 @@ const updateTodoStatus = async (req: Request, res: Response) => {
   }
 };
 
+// Fetch Todos for the authenticated user
 const fetchTodos = async (req: Request, res: Response) => {
   try {
     if (!req.user || !req.user._id) {
       return res.status(400).json({ message: "User not found" });
     }
     const user = await User.findById(req.user._id).populate("todolist");
+
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    if (!user.todolist || user.todolist.length === 0) {
-      return res.status(404).json({ message: "Todos not found" });
-    }
-    console.log("User's Todo List:", user.todolist);
-    return res.status(200).json({ usertodos: user.todolist });
+
+    return res.status(200).json({ usertodos: user.todolist || [] });
   } catch (error) {
     return res.status(500).json({
       message: "Error fetching todos",

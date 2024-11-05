@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { Request, Response } from "express";
-
 import { User } from "../models/user.model";
 import { Todo } from "../models/todo.model";
 
@@ -9,6 +8,11 @@ const TodoSchema = z.object({
   title: z.string().min(4, "Title is required"),
   description: z.string().min(5, "Description is required"),
   markedAsCompleted: z.boolean().default(false),
+});
+
+const editTodoSchema = z.object({
+  newTitle: z.string().min(4, "New Title is required"),
+  newDescription: z.string().min(5, "New description is required"),
 });
 
 // Create a new Todo
@@ -69,7 +73,7 @@ const deleteTodo = async (req: Request, res: Response) => {
 };
 
 // Update the status of a Todo
-const updateTodoStatus = async (req: Request, res: Response) => {
+const toggleTodo = async (req: Request, res: Response) => {
   const { markedAsCompleted } = req.body;
 
   try {
@@ -118,4 +122,37 @@ const fetchTodos = async (req: Request, res: Response) => {
   }
 };
 
-export { createTodo, deleteTodo, updateTodoStatus, fetchTodos };
+// Edit a Todo
+const editTodo = async (req: Request, res: Response) => {
+  const parseResult = editTodoSchema.safeParse(req.body);
+  if (!parseResult.success) {
+    return res
+      .status(400)
+      .json({ message: "Validation errors", errors: parseResult.error.errors });
+  }
+
+  const { newTitle, newDescription } = parseResult.data;
+
+  try {
+    const updatedTodo = await Todo.findByIdAndUpdate(
+      req.params.id,
+      { title: newTitle, description: newDescription },
+      { new: true }
+    );
+
+    if (!updatedTodo) {
+      return res.status(404).json({ message: "Todo not found" });
+    }
+
+    return res
+      .status(200)
+      .json({ message: "Todo updated successfully", updatedTodo });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Error updating todo",
+      error: (error as Error).message,
+    });
+  }
+};
+
+export { createTodo, deleteTodo, toggleTodo, fetchTodos, editTodo };

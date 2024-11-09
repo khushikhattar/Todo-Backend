@@ -8,11 +8,13 @@ import {
   updateUser,
   updatePassword,
   deleteUser,
+  fetchUser,
 } from "../controllers/user.controller";
 import { verifyJWT } from "../middlewares/auth.middleware";
 
 const router = Router();
 
+router.route("/fetch").get(verifyJWT, fetchUser);
 router.route("/register").post(registerUser); // Register a new user
 router.route("/login").post(loginUser); // User login
 router.route("/logout").post(verifyJWT, logoutUser); // User logout

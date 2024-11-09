@@ -3,19 +3,25 @@ import { Request, Response } from "express";
 import { User } from "../models/user.model";
 import { Todo } from "../models/todo.model";
 
-// Define the schema for validating todos
 const TodoSchema = z.object({
-  title: z.string().min(4, "Title is required"),
-  description: z.string().min(5, "Description is required"),
+  title: z.string().min(4, "Title must be at least 4 characters long"),
+  description: z
+    .string()
+    .min(5, "Description must be at least 5 characters long"),
   markedAsCompleted: z.boolean().default(false),
 });
 
 const editTodoSchema = z.object({
-  newTitle: z.string().min(4, "New Title is required"),
-  newDescription: z.string().min(5, "New description is required"),
+  newTitle: z
+    .string()
+    .min(4, "New Title must be at least 4 characters long")
+    .optional(),
+  newDescription: z
+    .string()
+    .min(5, "New Description must be at least 5 characters long")
+    .optional(),
 });
 
-// Create a new Todo
 const createTodo = async (req: Request, res: Response) => {
   const parsedata = TodoSchema.safeParse(req.body);
 
@@ -34,7 +40,6 @@ const createTodo = async (req: Request, res: Response) => {
       markedAsCompleted,
     });
 
-    // Check if the user update was successful
     const updatedUser = await User.findByIdAndUpdate(req.user!._id, {
       $push: { todolist: newTodo._id },
     });
@@ -45,6 +50,7 @@ const createTodo = async (req: Request, res: Response) => {
 
     res.status(201).json({ message: "Todo created successfully", newTodo });
   } catch (error) {
+    console.error("Error creating todo:", error);
     res.status(500).json({
       message: "Error creating todo",
       error: (error as Error).message,
@@ -52,7 +58,6 @@ const createTodo = async (req: Request, res: Response) => {
   }
 };
 
-// Delete a Todo
 const deleteTodo = async (req: Request, res: Response) => {
   try {
     const deletedTodo = await Todo.findByIdAndDelete(req.params.id);
@@ -65,6 +70,7 @@ const deleteTodo = async (req: Request, res: Response) => {
       .status(200)
       .json({ message: "Todo deleted successfully", deletedTodo });
   } catch (error) {
+    console.error("Error deleting todo:", error);
     res.status(500).json({
       message: "Error deleting todo",
       error: (error as Error).message,
@@ -72,7 +78,6 @@ const deleteTodo = async (req: Request, res: Response) => {
   }
 };
 
-// Update the status of a Todo
 const toggleTodo = async (req: Request, res: Response) => {
   const { markedAsCompleted } = req.body;
 
@@ -89,24 +94,25 @@ const toggleTodo = async (req: Request, res: Response) => {
 
     return res.status(200).json({
       message: `Todo ${
-        markedAsCompleted ? "marked as completed" : "not completed"
+        markedAsCompleted ? "marked as completed" : "marked as incomplete"
       }`,
       todo,
     });
   } catch (error) {
+    console.error("Error updating todo status:", error);
     res.status(500).json({
-      message: "Error updating todo",
+      message: "Error updating todo status",
       error: (error as Error).message,
     });
   }
 };
 
-// Fetch Todos for the authenticated user
 const fetchTodos = async (req: Request, res: Response) => {
   try {
     if (!req.user || !req.user._id) {
       return res.status(400).json({ message: "User not found" });
     }
+
     const user = await User.findById(req.user._id).populate("todolist");
 
     if (!user) {
@@ -115,6 +121,7 @@ const fetchTodos = async (req: Request, res: Response) => {
 
     return res.status(200).json({ usertodos: user.todolist || [] });
   } catch (error) {
+    console.error("Error fetching todos:", error);
     return res.status(500).json({
       message: "Error fetching todos",
       error: (error as Error).message,
@@ -122,21 +129,33 @@ const fetchTodos = async (req: Request, res: Response) => {
   }
 };
 
-// Edit a Todo
 const editTodo = async (req: Request, res: Response) => {
   const parseResult = editTodoSchema.safeParse(req.body);
+
   if (!parseResult.success) {
-    return res
-      .status(400)
-      .json({ message: "Validation errors", errors: parseResult.error.errors });
+    return res.status(400).json({
+      message: "Validation errors",
+      errors: parseResult.error.errors,
+    });
   }
 
   const { newTitle, newDescription } = parseResult.data;
+  const updateFields: Partial<{ title: string; description: string }> = {};
+
+  if (newTitle && newTitle.trim()) updateFields.title = newTitle.trim();
+  if (newDescription && newDescription.trim())
+    updateFields.description = newDescription.trim();
+
+  if (Object.keys(updateFields).length === 0) {
+    return res
+      .status(400)
+      .json({ message: "At least one field must be updated" });
+  }
 
   try {
     const updatedTodo = await Todo.findByIdAndUpdate(
       req.params.id,
-      { title: newTitle, description: newDescription },
+      updateFields,
       { new: true }
     );
 
@@ -144,10 +163,12 @@ const editTodo = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "Todo not found" });
     }
 
-    return res
-      .status(200)
-      .json({ message: "Todo updated successfully", updatedTodo });
+    return res.status(200).json({
+      message: "Todo updated successfully",
+      updatedTodo,
+    });
   } catch (error) {
+    console.error("Error updating todo:", error);
     return res.status(500).json({
       message: "Error updating todo",
       error: (error as Error).message,

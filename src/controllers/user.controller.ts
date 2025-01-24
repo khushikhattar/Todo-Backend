@@ -137,7 +137,7 @@ const loginUser = async (req: Request, res: Response) => {
 // Logout user
 const logoutUser = async (req: Request, res: Response) => {
   if (!req.user || !req.user._id) {
-    return res.status(400).json({ message: "User not found" });
+    return res.status(400).json({ message: "User not authenticated" });
   }
 
   try {
@@ -207,7 +207,7 @@ const updateUser = async (req: Request, res: Response) => {
   const { username, email } = parseResult.data;
 
   if (!req.user || !req.user._id) {
-    return res.status(400).json({ message: "User not found" });
+    return res.status(400).json({ message: "User not authenticated" });
   }
 
   // Use $set correctly
@@ -237,7 +237,7 @@ const updatePassword = async (req: Request, res: Response) => {
   }
 
   if (!req.user || !req.user._id) {
-    return res.status(400).json({ message: "User not found" });
+    return res.status(400).json({ message: "User not authenticated" });
   }
 
   const { oldpassword, newpassword } = parseResult.data;
@@ -267,7 +267,7 @@ const updatePassword = async (req: Request, res: Response) => {
 // Delete User
 const deleteUser = async (req: Request, res: Response) => {
   if (!req.user || !req.user._id) {
-    return res.status(400).json({ message: "User not found" });
+    return res.status(400).json({ message: "User not authenticated" });
   }
 
   const deleteduser = await User.findByIdAndDelete(req.user._id);
@@ -284,7 +284,7 @@ const deleteUser = async (req: Request, res: Response) => {
 const fetchUser = async (req: Request, res: Response) => {
   try {
     if (!req.user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ message: "User not authenticated" });
     }
     res.status(200).json({ user: req.user });
   } catch (error) {
